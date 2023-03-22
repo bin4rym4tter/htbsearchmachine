@@ -27,6 +27,7 @@ function helpPanel(){
   echo -e "\t ${purpleColour}u)${endColour}${grayColour} Descargar o actualizar archivos necesarios${endColour}"   
   echo -e "\t ${purpleColour}m)${endColour}${grayColour} Buscar por un nombre de maquina${endColour}"  
   echo -e "\t ${purpleColour}i)${endColour}${grayColour} Buscar por un nombre de maquina${endColour}"  
+  echo -e "\t ${purpleColour}s)${endColour}${grayColour} Buscar por skill ${endColour}"  
   echo -e "\t ${purpleColour}y)${endColour}${grayColour} Obtener link de la resolucion de la maquina en youtube${endColour}"  
   echo -e "\t ${purpleColour}o)${endColour}${grayColour} Obtener lista de maquinas por su sistema operativo${endColour}"  
   echo -e "\t ${purpleColour}d)${endColour}${grayColour} Obtener lista de maquinas con la dificultad indicada${endColour}"  
@@ -126,6 +127,16 @@ function getOS_Difficulty_Machines(){
     echo -e "\n${redColour}[!] Se ha indicado una dificultad o sistema operativo incorrecto.${purpleColour}$machineOS${endColour}.\n"
   fi
 }
+function getSkills(){
+  machineSkills="$1"
+  skill_check="$(cat bundle.js | grep "skills: " -B 6 | grep -i "$machineSkills" -B 6 | grep "name:" | awk 'NF{print $NF}' | tr -d '"' | tr -d ',' | column)"
+  if [ "$skill_check" ]; then
+    echo -e "\n${yellowColour}[+]${endColour} ${grayColour}Buscando por la skill${endColour} ${purpleColour}$machineSkills${endColour}:\n"
+    echo -e "$skill_check"
+  else
+    echo -e "\n${redColour}[!] No existen maquinas en que se implemente la skill ${purpleColour}$machineSkills${endColour}.\n" 
+  fi
+}
 # Indicadores
 declare -i parameter_counter=0
 
@@ -133,7 +144,7 @@ declare -i parameter_counter=0
 declare -i chivato_difficulty=0
 declare -i chivato_operativeSystem=0
 
-while getopts "m:ui:y:d:o:h" arg; do
+while getopts "m:ui:y:d:o:s:h" arg; do
   case $arg in
     m) machineName="$OPTARG"; let parameter_counter+=1;;
     u) let parameter_counter+=2;;
@@ -141,6 +152,7 @@ while getopts "m:ui:y:d:o:h" arg; do
     y) machineName="$OPTARG"; let parameter_counter+=4;;
     d) difficulty="$OPTARG"; chivato_difficulty=1; let parameter_counter+=5;;
     o) operativeSystem="$OPTARG"; chivato_operativeSystem=1; let parameter_counter+=6;;
+    s) machineSkills="$OPTARG"; let parameter_counter+=7;;
     h) ;;
   esac
 done
@@ -157,6 +169,8 @@ elif [ $parameter_counter -eq 5 ]; then
   getDifficulty $difficulty  
 elif [ $parameter_counter -eq 6 ]; then 
   searchOS $operativeSystem
+elif [ $parameter_counter -eq 7 ]; then
+  getSkills "$machineSkills"
 elif [ $chivato_difficulty -eq 1 ] && [ $chivato_operativeSystem -eq 1 ]; then
   getOS_Difficulty_Machines $difficulty $operativeSystem
 else
