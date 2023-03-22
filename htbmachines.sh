@@ -26,7 +26,9 @@ function helpPanel(){
   echo -e "\n ${yellowColour}[+]${endColour}${grayColour}Uso:${endColour}"  
   echo -e "\t ${purpleColour}u)${endColour}${grayColour} Descargar o actualizar archivos necesarios${endColour}"   
   echo -e "\t ${purpleColour}m)${endColour}${grayColour} Buscar por un nombre de maquina${endColour}"  
-  echo -e "\t ${purpleColour}i)${endColour}${grayColour} Buscar por direccion IP${endColour}"  
+  echo -e "\t ${purpleColour}i)${endColour}${grayColour} Buscar por un nombre de maquina${endColour}"  
+  echo -e "\t ${purpleColour}y)${endColour}${grayColour} Obtener link de la resolucion de la maquina en youtube${endColour}"  
+  echo -e "\t ${purpleColour}d)${endColour}${grayColour} Obtener lista de maquinas con la dificultad indicada${endColour}"  
   echo -e "\t ${purpleColour}h)${endColour}${grayColour} Mostrar este panel de ayuda${endColour}\n" 
 }
 
@@ -60,24 +62,56 @@ function updateFiles(){
 
 function searchMachine(){
   machineName="$1"
-  echo -e "\n${yellowColour}[+]${endColour} ${grayColour}Listando las propiedades de la maquina:${blueColour} $machineName${endColour}${endColour}\n"
-  cat bundle.js | awk "/name: \"$machineName\"/,/resuelta:/" | grep -vE "id:|sku:|resuelta:" | tr -d '""' | tr -d ',' | sed 's/^ *//'
+  machineName_Checker="$(cat bundle.js | awk "/name: \"$machineName\"/,/resuelta:/" | grep -vE "id:|sku:|resuelta:" | tr -d '""' | tr -d ',' | sed 's/^ *//')"
 
+  if [ "$machineName_Checker" ]; then
+  
+    echo -e "\n${yellowColour}[+]${endColour} ${grayColour}Listando las propiedades de la maquina:${blueColour} $machineName${endColour}${endColour}\n"
+    echo -e "$machineName_Checker"
+  else
+    echo -e "\n${redColour}[!] La maquina indicada no existe${endColour}"
+  fi
 }
 
 function searchIP(){
   ipAddress="$1"
   machineName="$(cat bundle.js | grep "ip: \"$ipAddress\"" -B 3 | grep 'name:' | awk '{print $2}' | tr -d '""' | tr -d ',')"
-  echo -e "\n${yellowColour}[+]${endColour}${grayColour} La maquina correspondiente para la direccion ip${endColour} ${blueColour}$ipAddress${endColour} es: ${blueColour}$machineName${endColour}\n"
+  if [ "$machineName" ]; then
+    echo -e "\n${yellowColour}[+]${endColour}${grayColour} La maquina correspondiente para la direccion ip${endColour} ${blueColour}$ipAddress${endColour} es: ${blueColour}$machineName${endColour}\n"
+  else
+    echo -e "\n${redColour}[!] La direccion IP indicada no existe${redColour}"
+  fi
+}
+
+function getYoutobeLink(){
+  machineName="$1"
+  youtubelink="$(cat bundle.js | awk "/name: \"$machineName\"/,/resuelta:/" | grep -vE "id:|sku:|resulta:" | tr -d '""' | tr -d ',' | sed 's/^ *//' | grep youtube | awk 'NF{print $NF}')"
+  if [ "$youtubelink" ]; then
+    echo -e "\n${yellowColour}[+]${endColour} ${grayColour}El link de youtube para la maquina${endColour} ${blueColour}$machineName${endColour} ${grayColour}es:${endColour} ${blueColour}$youtubelink${endColour}\n"  
+  else
+    echo -e "\n${redColour}[!] La maquina indicada no tiene cuenta con un link.${redColour}\n"
+  fi
+}
+function getDifficulty(){
+  machineDifficulty="$1"
+  machineDifficulty_Checker="$(cat bundle.js| grep "dificultad: \"$machineDifficulty\"" -B 7 | grep name | awk 'NF{print $NF}' | tr -d '"' | tr -d ',' | column)"
+  if [ "$machineDifficulty_Checker" ]; then
+    echo -e "\n${yellowColour}[+]${endColour} ${grayColour}Esta es la lista de maquinas disponible para la dificultad${endColour} ${blueColour}$machineDifficulty${endColour}:\n"
+    echo -e "$machineDifficulty_Checker"
+  else 
+    echo -e "\n${redColour}[!] La dificultad indicada no existe.${redColour}\n"
+  fi
 }
 # Indicadores
 declare -i parameter_counter=0
 
-while getopts "m:ui:h" arg; do
+while getopts "m:ui:y:d:h" arg; do
   case $arg in
-    m) machineName=$OPTARG; let parameter_counter+=1;;
+    m) machineName="$OPTARG"; let parameter_counter+=1;;
     u) let parameter_counter+=2;;
-    i) ipAddress=$OPTARG; let parameter_counter+=3;;
+    i) ipAddress="$OPTARG"; let parameter_counter+=3;;
+    y) machineName="$OPTARG"; let parameter_counter+=4;;
+    d) difficulty="$OPTARG"; let parameter_counter+=5;;
     h) ;;
   esac
 done
@@ -88,6 +122,10 @@ elif [ $parameter_counter -eq 2 ]; then
   updateFiles
 elif [ $parameter_counter -eq 3 ]; then
   searchIP $ipAddress
+elif [ $parameter_counter -eq 4 ]; then
+  getYoutobeLink $machineName
+elif [ $parameter_counter -eq 5 ]; then
+  getDifficulty $difficulty  
 else
   helpPanel
 fi
