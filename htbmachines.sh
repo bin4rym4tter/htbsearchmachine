@@ -28,6 +28,7 @@ function helpPanel(){
   echo -e "\t ${purpleColour}m)${endColour}${grayColour} Buscar por un nombre de maquina${endColour}"  
   echo -e "\t ${purpleColour}i)${endColour}${grayColour} Buscar por un nombre de maquina${endColour}"  
   echo -e "\t ${purpleColour}y)${endColour}${grayColour} Obtener link de la resolucion de la maquina en youtube${endColour}"  
+  echo -e "\t ${purpleColour}o)${endColour}${grayColour} Obtener lista de maquinas por su sistema operativo${endColour}"  
   echo -e "\t ${purpleColour}d)${endColour}${grayColour} Obtener lista de maquinas con la dificultad indicada${endColour}"  
   echo -e "\t ${purpleColour}h)${endColour}${grayColour} Mostrar este panel de ayuda${endColour}\n" 
 }
@@ -102,16 +103,44 @@ function getDifficulty(){
     echo -e "\n${redColour}[!] La dificultad indicada no existe.${redColour}\n"
   fi
 }
+
+function searchOS(){
+  machineOS="$1"
+  machineOS_Checker="$(cat bundle.js | grep -i "so: \"$machineOS\"" -B 5 | grep name: | awk '{print $2}' | tr -d '"' | tr -d ',' | column)"
+  if [ "$machineOS_Checker" ]; then
+    echo -e "\n${yellowColour}[+]${endColour} ${grayColour}Esta es la lista de maquinas disponible que utilizan el OS${endColour} ${blueColour}$machineOS${endColour}:\n"
+    echo -e "$machineOS_Checker"
+  else 
+    echo -e "\n${redColour}[!] No existen hay informacion de maquinas con el sistema operativo${endColour} ${purpleColour}$machineOS${endColour}.\n"
+  fi
+}
+
+function getOS_Difficulty_Machines(){
+  difficulty="$1"
+  machineOS="$2"
+  check_results="$(cat bundle.js | grep -i "so: \"$machineOS\"" -C 4 | grep "dificultad: \"$difficulty\"" -B 5 | grep "name:" | awk '{print $2}' | tr -d '"' | tr -d ',' | column)"
+  if [ "$check_results" ]; then
+    echo -e "\n${yellowColour}[+]${endColour} ${grayColour}Listado de maquinas para OS${endColour} ${purpleColour}$machineOS${endColour} ${grayColour}y dificultad${endColour} ${purpleColour}$difficulty${purpleColour}:\n"
+    echo "$check_results"
+  else
+    echo -e "\n${redColour}[!] Se ha indicado una dificultad o sistema operativo incorrecto.${purpleColour}$machineOS${endColour}.\n"
+  fi
+}
 # Indicadores
 declare -i parameter_counter=0
 
-while getopts "m:ui:y:d:h" arg; do
+# Chivatos
+declare -i chivato_difficulty=0
+declare -i chivato_operativeSystem=0
+
+while getopts "m:ui:y:d:o:h" arg; do
   case $arg in
     m) machineName="$OPTARG"; let parameter_counter+=1;;
     u) let parameter_counter+=2;;
     i) ipAddress="$OPTARG"; let parameter_counter+=3;;
     y) machineName="$OPTARG"; let parameter_counter+=4;;
-    d) difficulty="$OPTARG"; let parameter_counter+=5;;
+    d) difficulty="$OPTARG"; chivato_difficulty=1; let parameter_counter+=5;;
+    o) operativeSystem="$OPTARG"; chivato_operativeSystem=1; let parameter_counter+=6;;
     h) ;;
   esac
 done
@@ -126,6 +155,10 @@ elif [ $parameter_counter -eq 4 ]; then
   getYoutobeLink $machineName
 elif [ $parameter_counter -eq 5 ]; then
   getDifficulty $difficulty  
+elif [ $parameter_counter -eq 6 ]; then 
+  searchOS $operativeSystem
+elif [ $chivato_difficulty -eq 1 ] && [ $chivato_operativeSystem -eq 1 ]; then
+  getOS_Difficulty_Machines $difficulty $operativeSystem
 else
   helpPanel
 fi
